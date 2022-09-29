@@ -74,7 +74,6 @@ def wells_table_creation(table_name, connection, column_list=[]):
         table_creation_query = f"CREATE TABLE {table_name}("
         for column in column_list:
             table_creation_query += column
-    
         table_creation_query += ")"   
     else:
         table_creation_query = f"""
