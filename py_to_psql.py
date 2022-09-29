@@ -153,5 +153,4 @@ def fetch_column_names(table_name, connection, limit=0):
             table's column names.
     """
     column_names_query = f"SELECT * FROM {table_name} LIMIT {limit}"
-    
-    return(fetch_psql_command(column_names_query, conn)[0]) 
+    return(fetch_psql_command(column_names_query, connection)[0]) 
