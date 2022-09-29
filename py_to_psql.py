@@ -87,3 +87,71 @@ def wells_table_creation(table_name, connection, column_list=[]):
             )
             """
     return(execute_psql_command(table_creation_query, connection))
+
+def fetch_psql_command(command, connection):
+    """
+    Make queries and return server's output.
+    
+    ARGUMENTS
+    ---------
+        command : str
+            PSQL commands.
+        
+        connection : psycopg2.extensions.connection
+            Parameters to create a connection between end user
+            and PSQL server.
+    
+    RETURN
+    ------
+        Tuple (column_names, query_result)
+            Psycopg2 doesn't returns columns with its fetchall 
+            method; therefore, the tuple contains column_names plus
+            query results.
+    """
+    try:
+        init = time.time()
+        # PSQL cursor
+        cursor = connection.cursor() 
+        cursor.execute(command)
+        query_result = cursor.fetchall()
+        column_names = [col_name[0] for col_name in cursor.description]
+        connection.commit()
+        end = time.time()
+        print(f"Command has been executed successfully. Execution time = {end - init}s")
+        return (column_names, query_result)
+    except Exception as e:
+        # Terminate connection
+        connection.commit()
+        end = time.time()
+        print("Traceback details: ")
+        details = tb.format_tb(e.__traceback__)
+        print("\n".join(details))
+        print(e.__class__.__name__, ":", e)
+        print(f"Command can not be processed. Execution time = {end - init}s")
+
+def fetch_column_names(table_name, connection, limit=0):
+    """
+    Fetches only column names of the given table.
+    
+    ARGUMENTS
+    ---------
+        table_name : psql table
+            PSQL table object.
+        
+        connection : psycopg2.extensions.connection
+            Parameters to create a connection between end user
+            and PSQL server.
+            
+        limit : int
+            0 by default. Adds a query limit of 0 to return
+            only the column names.
+    
+    RETURN
+    ------
+        fetch_psql_command
+            fetch_psql_command method that returns only the
+            table's column names.
+    """
+    column_names_query = f"SELECT * FROM {table_name} LIMIT {limit}"
+    
+    return(fetch_psql_command(column_names_query, conn)[0]) 
