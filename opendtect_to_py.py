@@ -38,7 +38,7 @@ def insert_wells(
     
     ARGUMENTS
     ---------
-        table_name : psql table
+        table_name : str
             PSQL table object.
             
         name_column_name : str
@@ -59,7 +59,7 @@ def insert_wells(
      
      FOOT NOTES
      ----------
-         This method is.. a litle bit of hardcoded. I'm very sorry.
+         This method is.. a bit of hardcoded. I'm very sorry.
          values_statement argument is provided in order to allow
          a more flexible insertion if you are using other columns.
     
@@ -128,3 +128,76 @@ def fetch_opendtect_well_log(well_name, log_name):
     except Exception:
         print(f"Log {log_name} not found for Well {well_name}.")
         return([])
+    
+def insert_log(table_name, wells_table, well_name, log_name, connection):
+    """
+    Insert a desired log into a table.
+    
+    ARGUMENTS
+    ---------
+        table_name : str
+            PSQL table object.
+        
+        wells_table : str
+            PSQL wells table, where the basic well info
+            is stored.
+        
+        well_name : str
+            Well database name.    
+        
+        log_name : str
+            Log name as reported by wellman.
+        
+        connection : psycopg2.extensions.connection
+            Parameters to create a connection between end user
+            and PSQL server.
+    
+    RETURNS
+    -------
+        str
+            Prints the finalization of the inserting process. Includes
+            execution time.
+            
+    FOOT NOTES
+    ----------
+         The construction of the PSQL can be improved.
+            
+    """
+    def array_check(array): return(str([None if sample == 1e+30 else sample for sample in array]).replace("None", "Null"))
+    init = time.time()
+    # column names & fetch log
+    column_names = pp.fetch_column_names(table_name, conn)
+    log = fetch_opendtect_well_log(well_name, log_name)
+    # fetch well id
+    well_id_query = f"SELECT {column_names[0]} FROM {wells_table} WHERE well_name = '{well_name}'"
+    well_id = pp.fetch_psql_command(well_id_query, connection)
+    # PSQL statements
+    conflict_statement = f"ON CONFLICT ({column_names[0]}) DO NOTHING"
+    insert_statement = f"INSERT INTO {table_name}("
+    for col_name in column_names:
+        if col_name != column_names[-1]:
+            insert_statement += f"{col_name}, "
+        else:
+            insert_statement += f"{col_name}) "
+    # Values
+    values_statement = f"VALUES ({well_id[1][0][0]}, "
+    # If log is not []
+    if log:
+        for array in log:
+            if array != log[-1]:
+                values_statement += f"array{array_check(array)}, "
+            else: 
+                values_statement += f"array{array_check(array)}) "
+    # If log [], fill the psql array with nulls
+    else:
+        for col_name in column_names:
+            if (col_name != column_names[-1]) and (col_name != column_names[0]):
+                values_statement += f"NULL, "
+            elif col_name == column_names[-1]:
+                values_statement += f"NULL)"
+
+    # Execute insert statement
+    insert_query = insert_statement + values_statement + conflict_statement
+    pp.execute_psql_command(insert_query, connection)
+    end = time.time()
+    return (f"Done inserting well {well_name} '{log_name}' log. Execution time = {end - init}s")
