@@ -95,3 +95,36 @@ def insert_wells(
         print(f"Well {well_dict['Name']} insertion completed in {end2 - init2}s")
     end = time.time()
     return f"Wells insertion completed in {end - init}s"
+
+def fetch_opendtect_well_log(well_name, log_name):
+    """
+    Fetches a well log.
+    
+    ARGUMENTS
+    ---------
+        well_name : str
+            Well database name.
+            
+        log_name : str
+            Log name as reported by wellman.
+    
+    RETURN
+    ------
+        Tuple
+            Two list [arrays for psycopg2] with depths (MD) and 
+            log values.
+        
+        Empty list
+            If there isn't any log by log_name related to well_name.
+    
+    """
+    try:
+        # log n array
+        if log_name == "track":
+            log = wm.getTrack(well_name)
+        else:
+            log = wm.getLog(well_name, log_name)
+        return (log)
+    except Exception:
+        print(f"Log {log_name} not found for Well {well_name}.")
+        return([])
