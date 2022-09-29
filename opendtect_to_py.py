@@ -204,3 +204,15 @@ def insert_log(table_name, wells_table, well_name, log_name, connection):
     pp.execute_psql_command(insert_query, connection)
     end = time.time()
     return (f"Done inserting well {well_name} '{log_name}' log. Execution time = {end - init}s")
+
+def insert_logs(table_name, wells_table, well_names, log_name, connection):
+    """
+    Feeds insert_log method with wells.
+    
+    For more details, see insert_log docstring.
+    """
+    init = time.time()
+    for well_name in well_names:
+        insert_log(table_name, wells_table, well_name, log_name, connection)
+    end = time.time()
+    return (f"Log insertion completed in {end - init}s")
