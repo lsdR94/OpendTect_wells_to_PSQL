@@ -131,7 +131,7 @@ def fetch_opendtect_well_log(well_name, log_name):
     
 def insert_log(table_name, wells_table, well_name, log_name, connection):
     """
-    Insert a desired log into a table.
+    Insert a single log (of given well) into a table.
     
     If there is no log, null values are going to be inserted in
     the table.
