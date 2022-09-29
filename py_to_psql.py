@@ -135,7 +135,7 @@ def fetch_column_names(table_name, connection, limit=0):
     
     ARGUMENTS
     ---------
-        table_name : psql table
+        table_name : str
             PSQL table object.
         
         connection : psycopg2.extensions.connection
