@@ -129,7 +129,14 @@ def fetch_opendtect_well_log(well_name, log_name):
         print(f"Log {log_name} not found for Well {well_name}.")
         return([])
     
-def insert_log(table_name, wells_table, well_name, log_name, connection):
+def insert_log(
+    table_name, 
+    wells_table, 
+    well_name, 
+    log_name, 
+    connection,
+    on_conflict_do="NOTHING"
+):
     """
     Insert a single log (of given well) into a table.
     
@@ -169,13 +176,14 @@ def insert_log(table_name, wells_table, well_name, log_name, connection):
     def array_check(array): return(str([None if sample == 1e+30 else sample for sample in array]).replace("None", "Null"))
     init = time.time()
     # column names & fetch log
-    column_names = pp.fetch_column_names(table_name, conn)
+    column_names = pp.fetch_column_names(table_name, connection)
     log = fetch_opendtect_well_log(well_name, log_name)
     # fetch well id
     well_id_query = f"SELECT {column_names[0]} FROM {wells_table} WHERE well_name = '{well_name}'"
     well_id = pp.fetch_psql_command(well_id_query, connection)
     # PSQL statements
-    conflict_statement = f"ON CONFLICT ({column_names[0]}) DO NOTHING"
+    conflict_statement = f"ON CONFLICT ({column_names[0]}) DO "
+    conflict_statement += f"{on_conflict_do};"
     insert_statement = f"INSERT INTO {table_name}("
     for col_name in column_names:
         if col_name != column_names[-1]:
@@ -187,10 +195,8 @@ def insert_log(table_name, wells_table, well_name, log_name, connection):
     # If log is not []
     if log:
         for array in log:
-            if array != log[-1]:
-                values_statement += f"array{array_check(array)}, "
-            else: 
-                values_statement += f"array{array_check(array)}) "
+            values_statement += f"array{array_check(array)}, "
+        values_statement += f"'{log_name}') "           
     # If log [], fill the psql array with nulls
     else:
         for col_name in column_names:
@@ -203,7 +209,8 @@ def insert_log(table_name, wells_table, well_name, log_name, connection):
     insert_query = insert_statement + values_statement + conflict_statement
     pp.execute_psql_command(insert_query, connection)
     end = time.time()
-    return (f"Done inserting well {well_name} '{log_name}' log. Execution time = {end - init}s")
+    print(f"Done inserting well {well_name} '{log_name}' log. Execution time = {end - init}s\n")
+    return (insert_query)
 
 def insert_logs(table_name, wells_table, well_names, log_name, connection):
     """
@@ -215,4 +222,5 @@ def insert_logs(table_name, wells_table, well_names, log_name, connection):
     for well_name in well_names:
         insert_log(table_name, wells_table, well_name, log_name, connection)
     end = time.time()
-    return (f"Log insertion completed in {end - init}s")
+    return (f"Log '{log_name}' insertion completed in {end - init}s")
+

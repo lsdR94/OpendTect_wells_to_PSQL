@@ -117,7 +117,7 @@ def fetch_psql_command(command, connection):
         column_names = [col_name[0] for col_name in cursor.description]
         connection.commit()
         end = time.time()
-        print(f"Command has been executed successfully. Execution time = {end - init}s")
+        # print(f"Fetch command has been executed successfully. Execution time = {end - init}s")
         return (column_names, query_result)
     except Exception as e:
         # Terminate connection
