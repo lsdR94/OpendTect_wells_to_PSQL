@@ -140,7 +140,7 @@ def insert_log(
     """
     Insert a single log (of given well) into a table.
     
-    If there is no log, null values are going to be inserted in
+    If there is no log, null values will be inserted in
     the table.
     
     ARGUMENTS
@@ -224,3 +224,32 @@ def insert_logs(table_name, wells_table, well_names, log_name, connection):
     end = time.time()
     return (f"Log '{log_name}' insertion completed in {end - init}s")
 
+def check_null_wells(
+    log_name,
+    log_table, 
+    wells_table, 
+    connection, 
+    name_column_name="well_name", 
+    id_column_name="well_id"
+):
+    
+    # Fetch Nulls from 
+    check_nulls_query = f"SELECT {name_column_name} FROM {log_table} "
+    check_nulls_query += f"INNER JOIN {wells_table} "
+    check_nulls_query += f"USING({id_column_name}) WHERE {log_name} is NULL"
+    null_wells_result = pp.fetch_psql_command(check_nulls_query, connection)
+    # null & empty wells lists
+    null_wells = []
+    empty_wells = []
+    for well in null_wells_result[1]:
+        # list filling
+        null_wells += [well[0]]
+        well_check = wm.getLogNames(well[0])
+        if well_check:
+            print(f"\nWell '{well[0]}' logs:")
+            print("****************************************")
+            for log_names in well_check:
+                 print(log_names)
+        else:
+            empty_wells += [well[0]]
+    return(null_wells, empty_wells)
