@@ -1,3 +1,4 @@
+from email import message
 import time
 import py_to_psql as pp
 import odpy.wellman as wm
@@ -45,12 +46,11 @@ def insert_wells(
             PSQL table target.
             
         connection : psycopg2.extensions.connection
-            Parameters to create a connection between end user
-            and PSQL server.
+            Parameters to create a connection between end user and PSQL 
+            server.
             
         values_statement : list (optional)
-            List of PSQL statements for a more flexible value
-            insertion.
+            List of PSQL statements for a more flexible value insertion.
        
     RETURN
     ------
@@ -89,10 +89,12 @@ def insert_wells(
                     '{well_dict['Status']}'
                 )
             """
-        upsertion_query = insert_statement + values_statement + conflict_statement
-        pp.execute_psql_command(upsertion_query, connection)
+        insert_statement += values_statement + conflict_statement
+        pp.execute_psql_command(insert_statement, connection)
         end2 = time.time()
-        print(f"Well {well_dict['Name']} insertion completed in {end2 - init2}s")
+        print(
+            f"Well {well_dict['Name']} insertion completed in {end2 - init2}s"
+        )
     end = time.time()
     return f"Wells insertion completed in {end - init}s"
 
@@ -111,8 +113,8 @@ def fetch_opendtect_well_log(well_name, log_name):
     RETURN
     ------
         Tuple
-            Two list [arrays for psycopg2] with depths (MD) and 
-            log values.
+            Two list [arrays for psycopg2] with depths (MD) and log 
+            values.
         
         Empty list
             If there isn't any log by log_name related to well_name.
@@ -155,12 +157,11 @@ def insert_log(
             PSQL table target.
         
         wells_table : str
-            PSQL wells table, where the basic well info
-            is stored.
+            PSQL wells table, where the basic well info is stored.
         
         connection : psycopg2.extensions.connection
-            Parameters to create a connection between end user
-            and PSQL server.
+            Parameters to create a connection between end user and PSQL 
+            server.
             
         on_conflict_do : str
             PSQL statements for data updates. (DO) NOTHING by default.
@@ -176,13 +177,18 @@ def insert_log(
          The construction of the PSQL can be improved.
             
     """
-    def array_check(array): return(str([None if sample == 1e+30 else sample for sample in array]).replace("None", "Null"))
+    def array_check(array): return(
+        str(
+            [None if sample == 1e+30 else sample for sample in array]
+        ).replace("None", "Null")
+    )
     init = time.time()
     # column names & fetch log
     column_names = pp.fetch_column_names(table_name, connection)
     log = fetch_opendtect_well_log(well_name, log_name)
     # fetch well id
-    well_id_query = f"SELECT {column_names[0]} FROM {wells_table} WHERE well_name = '{well_name}'"
+    well_id_query = f"SELECT {column_names[0]} FROM {wells_table} "
+    well_id_query += f"WHERE well_name = '{well_name}'"
     well_id = pp.fetch_psql_command(well_id_query, connection)
     # PSQL statements
     conflict_statement = f"ON CONFLICT ({column_names[0]}) DO "
@@ -212,7 +218,10 @@ def insert_log(
     insert_query = insert_statement + values_statement + conflict_statement
     pp.execute_psql_command(insert_query, connection)
     end = time.time()
-    print(f"Done inserting well {well_name} '{log_name}' log. Execution time = {end - init}s\n")
+    # well insertion message
+    message = f"Done inserting well {well_name} '{log_name}' log."
+    message += f"Execution time = {end - init}s\n"
+    print(message)
     return (insert_query)
 
 def insert_logs(
@@ -245,11 +254,10 @@ def check_null_wells(
     """
     Identifies null and empty wells.
     
-    By default, when insert_log doesn't find a specific log
-    related to a specific well, it insert a null value to
-    the target table. Null wells are those that contains
-    logs but not the called one. On the contrary, empty wells
-    are those with no log content.
+    By default, when insert_log doesn't find a specific log related to a
+    specific well, it insert a null value to the target table. Null 
+    wells are those that contains logs but not the called one. On the 
+    contrary, empty wells are those with no log content.
     
     ARGUMENTS
     ---------
@@ -264,8 +272,8 @@ def check_null_wells(
             is stored.
         
         connection : psycopg2.extensions.connection
-            Parameters to create a connection between end user
-            and PSQL server.
+            Parameters to create a connection between end user and PSQL 
+            server.
         
         name_column_name : str
             Well name column in PSQL wells table. Default: well_name.

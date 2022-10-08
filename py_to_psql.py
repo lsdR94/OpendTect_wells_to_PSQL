@@ -13,8 +13,8 @@ def execute_psql_command(command, connection):
             PSQL commands.
         
         connection : psycopg2.extensions.connection
-            Parameters to create a connection between end user
-            and PSQL server.
+            Parameters to create a connection between end user and PSQL 
+            server.
     
     RETURN
     ------
@@ -30,7 +30,8 @@ def execute_psql_command(command, connection):
         cursor.execute(command)
         connection.commit()
         end = time.time()
-        return(f"Command has been executed successfully. Execution time = {end - init}s")
+        return(f"Command has been executed successfully in {end - init}s"
+        )
     except Exception as e:
         # Terminate connection
         connection.commit()
@@ -51,12 +52,11 @@ def wells_table_creation(table_name, connection, column_list=[]):
             PostgreSQL table to create.
         
         connection : psycopg2.extensions.connection
-            Parameters to create a connection between end user
-            and PSQL server.
+            Parameters to create a connection between end user and PSQL 
+            server.
             
         column_list : list (optional)
-            List of PSQL statements for a more flexible table
-            creation.
+            List of PSQL statements for a more flexible table creation.
     
     RETURN
     ------
@@ -98,14 +98,14 @@ def fetch_psql_command(command, connection):
             PSQL commands.
         
         connection : psycopg2.extensions.connection
-            Parameters to create a connection between end user
-            and PSQL server.
+            Parameters to create a connection between end user and PSQL 
+            server.
     
     RETURN
     ------
         Tuple (column_names, query_result)
             Psycopg2 doesn't returns columns with its fetchall 
-            method; therefore, the tuple contains column_names plus
+            method; therefore, the tuple contains column_names plus 
             query results.
     """
     try:
@@ -139,18 +139,18 @@ def fetch_column_names(table_name, connection, limit=0):
             PSQL table object.
         
         connection : psycopg2.extensions.connection
-            Parameters to create a connection between end user
-            and PSQL server.
+            Parameters to create a connection between end user and PSQL 
+            server.
             
         limit : int
-            0 by default. Adds a query limit of 0 to return
-            only the column names.
+            0 by default. Adds a query limit of 0 to return only the 
+            column names.
     
     RETURN
     ------
         fetch_psql_command
-            fetch_psql_command method that returns only the
-            table's column names.
+            fetch_psql_command method that returns only the table's 
+            column names.
     """
     column_names_query = f"SELECT * FROM {table_name} LIMIT {limit}"
     return(fetch_psql_command(column_names_query, connection)[0]) 
