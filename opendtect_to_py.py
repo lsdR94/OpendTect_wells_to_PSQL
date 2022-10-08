@@ -19,8 +19,8 @@ def fetch_opendtect_wells_info():
     return map(lambdaf, well_names)
 
 def insert_wells(
-    table_name, 
-    name_column_name, 
+    name_column_name,
+    table_name,
     connection, 
     values_statement=None
 ):
@@ -37,19 +37,19 @@ def insert_wells(
     wells_table_creation method
     
     ARGUMENTS
-    ---------
-        table_name : str
-            PSQL table object.
-            
+    ---------        
         name_column_name : str
-            Name of the PSQL table column name.
+            Well name column in PSQL wells table. Default: well_name.
+            
+        table_name : str
+            PSQL table target.
             
         connection : psycopg2.extensions.connection
             Parameters to create a connection between end user
             and PSQL server.
             
         values_statement : list (optional)
-            List of PSQL statements for a more flexible table
+            List of PSQL statements for a more flexible value
             insertion.
        
     RETURN
@@ -103,7 +103,7 @@ def fetch_opendtect_well_log(well_name, log_name):
     ARGUMENTS
     ---------
         well_name : str
-            Well database name.
+            Well's database name.
             
         log_name : str
             Log name as reported by wellman.
@@ -130,10 +130,10 @@ def fetch_opendtect_well_log(well_name, log_name):
         return([])
     
 def insert_log(
+    well_name, 
+    log_name,
     table_name, 
     wells_table, 
-    well_name, 
-    log_name, 
     connection,
     on_conflict_do="NOTHING"
 ):
@@ -145,22 +145,25 @@ def insert_log(
     
     ARGUMENTS
     ---------
+        well_name : str
+            Well's database name.
+        
+        log_name : str
+            Log name as reported by wellman.
+            
         table_name : str
-            PSQL table object.
+            PSQL table target.
         
         wells_table : str
             PSQL wells table, where the basic well info
             is stored.
         
-        well_name : str
-            Well database name.    
-        
-        log_name : str
-            Log name as reported by wellman.
-        
         connection : psycopg2.extensions.connection
             Parameters to create a connection between end user
             and PSQL server.
+            
+        on_conflict_do : str
+            PSQL statements for data updates. (DO) NOTHING by default.
     
     RETURNS
     -------
@@ -212,7 +215,14 @@ def insert_log(
     print(f"Done inserting well {well_name} '{log_name}' log. Execution time = {end - init}s\n")
     return (insert_query)
 
-def insert_logs(table_name, wells_table, well_names, log_name, connection):
+def insert_logs(
+    well_names, 
+    log_name,
+    table_name, 
+    wells_table, 
+    connection,
+    on_conflict_do="NOTHING"
+):
     """
     Feeds insert_log method with wells.
     
@@ -220,7 +230,7 @@ def insert_logs(table_name, wells_table, well_names, log_name, connection):
     """
     init = time.time()
     for well_name in well_names:
-        insert_log(table_name, wells_table, well_name, log_name, connection)
+        insert_log(well_name, log_name, table_name, wells_table, connection)
     end = time.time()
     return (f"Log '{log_name}' insertion completed in {end - init}s")
 
@@ -232,6 +242,48 @@ def check_null_wells(
     name_column_name="well_name", 
     id_column_name="well_id"
 ):
+    """
+    Identifies null and empty wells.
+    
+    By default, when insert_log doesn't find a specific log
+    related to a specific well, it insert a null value to
+    the target table. Null wells are those that contains
+    logs but not the called one. On the contrary, empty wells
+    are those with no log content.
+    
+    ARGUMENTS
+    ---------
+        log_name : str
+            Log name as reported by wellman.
+        
+        log_table : str
+            PSQL log table target.
+        
+        wells_table : str
+            PSQL wells table, where the basic well info
+            is stored.
+        
+        connection : psycopg2.extensions.connection
+            Parameters to create a connection between end user
+            and PSQL server.
+        
+        name_column_name : str
+            Well name column in PSQL wells table. Default: well_name.
+            
+        id_column_name : str
+            Well id column's name. Default: well_id.
+    
+    RETURNS
+    -------
+        str
+            Prints the finalization of the inserting process. Includes
+            execution time.
+            
+    FOOT NOTES
+    ----------
+         The construction of the PSQL can be improved.
+    
+    """
     
     # Fetch Nulls from 
     check_nulls_query = f"SELECT {name_column_name} FROM {log_table} "
