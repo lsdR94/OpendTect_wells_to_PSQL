@@ -5,6 +5,18 @@ import time
 import pandas as pd
 import numpy as np
 
+REPLACE_DICT = {
+    "[": "",
+    "'": "",
+    ", ": ",",
+    ",  ": ",",
+    " ": "_",
+    "-": "_",
+    "/": "_",
+    "`": "_",
+    "]": ""
+}
+
 def execute_psql_command(command, connection):
     """
     Executes PSQL commands.
@@ -200,6 +212,40 @@ def csv_to_df(file_path, sep=",", feet=True, columns=None, encoding="latin-1"):
     # df_nulls = df.replace(to_replace=["*", np.NaN], value=["", ""])
     return df
 
+def string_replacement(string, replace_dict=REPLACE_DICT):
+    """
+    Replaces characters for others.
+    
+    Allows to ease string formatting for queries.
+    
+    ARGUMENTS
+    ---------
+        string : str
+            Unformatted string.
+        
+        replace_dict : dict
+            Pair of tar
+            
+        well_name : str
+            Well's database name.
+            
+        connection : psycopg2.extensions.connection
+            Parameters to create a connection between end user and PSQL 
+            server.
+            
+        on_conflict_do : str
+            PSQL statements for data updates. (DO) NOTHING by default.
+                
+    RETURN
+    ------
+        str
+            Insertion Query.
+    
+    """
+    for key,value in replace_dict.items():
+        string = string.replace(key, value)
+    return string
+
 def df_to_psql_bc(df, table_name, well_name, connection, on_conflict_do="NOTHING"):
     """
     Inserts data from dataframes to PSQL tables BY COLUMNS.
@@ -228,7 +274,7 @@ def df_to_psql_bc(df, table_name, well_name, connection, on_conflict_do="NOTHING
     RETURN
     ------
         str
-            Prints the finalization of the inserting process.
+            Insertion Query.
     """
     #Recover table columns (same as df)
     table_df_columns = fetch_column_names(table_name, connection)
@@ -272,7 +318,7 @@ def df_to_psql_br(df, table_name, connection, on_conflict_do="NOTHING"):
     RETURN
     ------
         str
-            Insertion query.
+            Insertion Query.
     """
     #Recover table columns (same as df)
     table_df_columns = fetch_column_names(table_name, connection)
