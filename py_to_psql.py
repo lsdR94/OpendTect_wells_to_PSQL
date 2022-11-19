@@ -2,6 +2,8 @@ import sys
 import traceback as tb
 import psycopg2 as p
 import time
+import pandas as pd
+import numpy as np
 
 def execute_psql_command(command, connection):
     """
@@ -153,4 +155,132 @@ def fetch_column_names(table_name, connection, limit=0):
             column names.
     """
     column_names_query = f"SELECT * FROM {table_name} LIMIT {limit}"
-    return(fetch_psql_command(column_names_query, connection)[0]) 
+    return(fetch_psql_command(column_names_query, connection)[0])
+
+def csv_to_df(file_path, sep=",", feet=True, columns=None, encoding="latin-1"):
+    """
+    Creates a Pandas Dataframe from csv file.
+    
+    If provided, can convert feet to meter columns, fillna and
+    round numeric columns.
+    
+    ARGUMENTS
+    ---------
+        file_path : str
+            Location of CSV file.
+        
+        sep : str
+            CSV's column separator. ',' by default.
+            
+        encoding : str
+            Encoding format for Pandas.
+            
+        columns : list
+            List of columns:
+            [0] Dataframe columns
+            [1] String columns
+            [2] Numeric columns
+            [3] Feet columns
+    
+    RETURN
+    ------
+        Pandas.DataFrame
+    """
+    df = pd.read_csv(file_path, sep, encoding=encoding)
+    #Reformating columns
+    if columns != None:
+        df.columns = columns[0]
+        #Replace nan for 0.0 in numeric columns to ease psql imports
+        df[columns[2]] = df[columns[2]].fillna(float(0))
+        df[columns[2]] = np.round(df[columns[2]], 2)
+    #Convert feet into meters
+    if feet:
+        df[columns[3]] *= 0.3048
+
+    # df_nulls = df.replace(to_replace=["*", np.NaN], value=["", ""])
+    return df
+
+def df_to_psql_bc(df, table_name, well_name, connection, on_conflict_do="NOTHING"):
+    """
+    Inserts data from dataframes to PSQL tables BY COLUMNS.
+        
+    ARGUMENTS
+    ---------
+        df : Pandas.DataFrame
+            Structured data. Pandas DataFrame.
+        
+        table_name : str
+            PSQL table object.
+            
+        well_name : str
+            Well's database name.
+            
+        connection : psycopg2.extensions.connection
+            Parameters to create a connection between end user and PSQL 
+            server.
+            
+        on_conflict_do : str
+            PSQL statements for data updates. (DO) NOTHING by default.
+                
+    RETURN
+    ------
+        str
+            Prints the finalization of the inserting process.
+    """
+    #Recover table columns (same as df)
+    table_df_columns = fetch_column_names(table_name, connection)
+    table_df_columns_s = str(table_df_columns).replace("[", "").replace("]", "").replace("'", "")
+    #PSQL statements
+    insert_statement = f"INSERT INTO {table_name}({table_df_columns_s}) "
+    values_statement = f"VALUES('{well_name}', "
+    conflict_statement = f"ON CONFLICT ({table_df_columns[0]}) DO "
+    conflict_statement += f"{on_conflict_do};"
+    for column in df.columns:
+        if column != df.columns[-1]:
+            values_statement += f"array{df[column].to_list()}, ".replace("nan", "NULL")
+        if column == df.columns[-1]:
+            values_statement += f"array{df[column].to_list()}) ".replace("nan", "NULL")
+    insert_query = insert_statement + values_statement + conflict_statement
+    #execute_psql_command(insert_query, connection)
+    return (insert_query)
+
+def df_to_psql_br(df, table_name, connection, on_conflict_do="NOTHING"):
+    """
+    Inserts data from dataframes to PSQL tables BY ROWS.
+        
+    ARGUMENTS
+    ---------
+        df : Pandas.DataFrame
+            Structured data. Pandas DataFrame.
+        
+        table_name : str
+            PSQL table object.
+                      
+        connection : psycopg2.extensions.connection
+            Parameters to create a connection between end user and PSQL 
+            server.
+            
+        on_conflict_do : str
+            PSQL statements for data updates. (DO) NOTHING by default.
+                
+    RETURN
+    ------
+        str
+            Prints the finalization of the inserting process.
+    """
+    #Recover table columns (same as df)
+    table_df_columns = fetch_column_names(table_name, connection)
+    table_df_columns_s = str(table_df_columns).replace("[", "").replace("]", "").replace("'", "")
+    #PSQL statements
+    insert_statement = f"INSERT INTO {table_name}({table_df_columns_s}) "
+    values_statement = f"VALUES"
+    conflict_statement = f"ON CONFLICT ({table_df_columns[0]}) DO "
+    conflict_statement += f"{on_conflict_do};"
+    for values in df.values:
+        if list(values) != list(df.values[-1]):
+            values_statement += f"({str(list(values))}),".replace("nan", "NULL").replace("[", "").replace("]", "")
+        if list(values) == list(df.values[-1]):
+            values_statement += f"({str(list(values))})".replace("nan", "NULL").replace("[", "").replace("]", "")
+    insert_query = insert_statement + values_statement + conflict_statement
+    execute_psql_command(insert_query, connection)
+    return (insert_query)
