@@ -224,22 +224,12 @@ def string_replacement(string, replace_dict=REPLACE_DICT):
             Unformatted string.
         
         replace_dict : dict
-            Pair of tar
+            Pair of targets and replacements. REPLACE_DICT by default.
             
-        well_name : str
-            Well's database name.
-            
-        connection : psycopg2.extensions.connection
-            Parameters to create a connection between end user and PSQL 
-            server.
-            
-        on_conflict_do : str
-            PSQL statements for data updates. (DO) NOTHING by default.
-                
     RETURN
     ------
         str
-            Insertion Query.
+            Formatted string.
     
     """
     for key,value in replace_dict.items():
@@ -250,8 +240,8 @@ def df_to_psql_bc(df, table_name, well_name, connection, on_conflict_do="NOTHING
     """
     Inserts data from dataframes to PSQL tables BY COLUMNS.
     
-    Aimed at storing logs of all wells vectorially in a single table.
-    Stores a single log into PSQL arrays.
+    Aimed at storing litoestratigraphy of all wells vectorially in a single 
+    table. Stores a single log into PSQL arrays.
         
     ARGUMENTS
     ---------
@@ -278,9 +268,8 @@ def df_to_psql_bc(df, table_name, well_name, connection, on_conflict_do="NOTHING
     """
     #Recover table columns (same as df)
     table_df_columns = fetch_column_names(table_name, connection)
-    table_df_columns_s = str(table_df_columns).replace("[", "").replace("]", "").replace("'", "")
     #PSQL statements
-    insert_statement = f"INSERT INTO {table_name}({table_df_columns_s}) "
+    insert_statement = f"INSERT INTO {table_name}({string_replacement(str(table_df_columns))}) "
     values_statement = f"VALUES('{well_name}', "
     conflict_statement = f"ON CONFLICT ({table_df_columns[0]}) DO "
     conflict_statement += f"{on_conflict_do};"
@@ -290,15 +279,13 @@ def df_to_psql_bc(df, table_name, well_name, connection, on_conflict_do="NOTHING
         if column == df.columns[-1]:
             values_statement += f"array{df[column].to_list()}) ".replace("nan", "NULL")
     insert_query = insert_statement + values_statement + conflict_statement
-    #execute_psql_command(insert_query, connection)
     return (insert_query)
 
 def df_to_psql_br(df, table_name, connection, on_conflict_do="NOTHING"):
     """
     Inserts data from dataframes to PSQL tables BY ROWS.
     
-    Aimed at storing markers of all wells vectorially in a single table.
-    Stores data individually.
+    Aimed at storing single data into a table.
         
     ARGUMENTS
     ---------
@@ -322,9 +309,8 @@ def df_to_psql_br(df, table_name, connection, on_conflict_do="NOTHING"):
     """
     #Recover table columns (same as df)
     table_df_columns = fetch_column_names(table_name, connection)
-    table_df_columns_s = str(table_df_columns).replace("[", "").replace("]", "").replace("'", "")
     #PSQL statements
-    insert_statement = f"INSERT INTO {table_name}({table_df_columns_s}) "
+    insert_statement = f"INSERT INTO {table_name}({string_replacement(str(table_df_columns))}) "
     values_statement = f"VALUES"
     conflict_statement = f"ON CONFLICT ({table_df_columns[0]}) DO "
     conflict_statement += f"{on_conflict_do};"
@@ -334,5 +320,4 @@ def df_to_psql_br(df, table_name, connection, on_conflict_do="NOTHING"):
         if list(values) == list(df.values[-1]):
             values_statement += f"({str(list(values))})".replace("nan", "NULL").replace("[", "").replace("]", "")
     insert_query = insert_statement + values_statement + conflict_statement
-    execute_psql_command(insert_query, connection)
     return (insert_query)

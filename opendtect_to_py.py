@@ -313,3 +313,41 @@ def check_null_wells(
         else:
             empty_wells += [well[0]]
     return(null_wells, empty_wells)
+
+def markers_to_psql(well_name, table_name, on_conflict_do="NOTHING"):
+    """
+    Insert a markers (of a given well) into a table.
+    
+    If there is no marker, the return will be an invalid query.
+    
+    ARGUMENTS
+    ---------
+        well_name : str
+            Well's database name.
+            
+        table_name : str
+            PSQL table target.
+            
+        on_conflict_do : str
+            PSQL statements for data updates. (DO) NOTHING by default.
+    
+    RETURNS
+    -------
+        str
+            Marker's insertion Query.
+    """
+    od_markers = wm.getMarkers(well_name)
+     #Recover table columns (same as df)
+    table_columns = pp.string_replacement(str(od_markers[0]))
+    #PSQL statements
+    insert_statement = f"INSERT INTO {table_name}(well_name,{table_columns}) "
+    values_statement = f"VALUES('{well_name}', "
+    conflict_statement = f"ON CONFLICT (well_name) DO "
+    conflict_statement += f"{on_conflict_do};"
+    for depth in od_markers[1]:
+        if depth != od_markers[1][-1]:
+            values_statement += f"{depth},"
+        if depth == od_markers[1][-1]:
+            values_statement += f"{depth}) "
+    insert_query = insert_statement + values_statement + conflict_statement
+    return insert_query
