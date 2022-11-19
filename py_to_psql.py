@@ -203,6 +203,9 @@ def csv_to_df(file_path, sep=",", feet=True, columns=None, encoding="latin-1"):
 def df_to_psql_bc(df, table_name, well_name, connection, on_conflict_do="NOTHING"):
     """
     Inserts data from dataframes to PSQL tables BY COLUMNS.
+    
+    Aimed at storing logs of all wells vectorially in a single table.
+    Stores a single log into PSQL arrays.
         
     ARGUMENTS
     ---------
@@ -247,6 +250,9 @@ def df_to_psql_bc(df, table_name, well_name, connection, on_conflict_do="NOTHING
 def df_to_psql_br(df, table_name, connection, on_conflict_do="NOTHING"):
     """
     Inserts data from dataframes to PSQL tables BY ROWS.
+    
+    Aimed at storing markers of all wells vectorially in a single table.
+    Stores data individually.
         
     ARGUMENTS
     ---------
@@ -266,7 +272,7 @@ def df_to_psql_br(df, table_name, connection, on_conflict_do="NOTHING"):
     RETURN
     ------
         str
-            Prints the finalization of the inserting process.
+            Insertion query.
     """
     #Recover table columns (same as df)
     table_df_columns = fetch_column_names(table_name, connection)
