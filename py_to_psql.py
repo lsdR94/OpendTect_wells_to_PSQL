@@ -44,7 +44,7 @@ def execute_psql_command(command, connection):
         cursor.execute(command)
         connection.commit()
         end = time.time()
-        return(f"Command has been executed successfully in {end - init}s"
+        return(f"Query has been executed successfully in {end - init}s"
         )
     except Exception as e:
         # Terminate connection
@@ -54,7 +54,7 @@ def execute_psql_command(command, connection):
         details = tb.format_tb(e.__traceback__)
         print("\n".join(details))
         print(e.__class__.__name__, ":", e)
-        print(f"Command can not be processed. Execution time = {end - init}s")
+        print(f"Query can not be processed. Execution time = {end - init}s")
         
 def wells_table_creation(table_name, connection, column_list=[]):
     """
