@@ -323,3 +323,105 @@ def df_to_psql_br(df, table_name, connection, on_conflict_do="NOTHING"):
             values_statement += f"({str(list(values))})".replace("nan", "NULL").replace("[", "").replace("]", "")
     insert_query = insert_statement + values_statement + conflict_statement
     return (insert_query)
+
+def slice_unnested_logs(
+    well_name,
+    well_name_column,
+    md_column,
+    log_name,
+    log_table, 
+    wells_table,
+    markers_table,
+    top_marker_name,
+    top_marker_depth,
+    base_marker_name,
+    base_marker_depth   
+):
+    """
+    Creates a query to fetch subvolumes of data from log tables with nested samples 
+    (arrays). Done well by well.
+    
+    Uses the following queries:
+        - Query 1 (subquery): fetches well log arrays where neither the md and the 
+            seismic markers are nulls. 
+        - Query 2 (subquery): unnests fetched arrays.
+        - Query 3 (query): filters unnested information by seismic markers of choice.
+            (top & base).
+    
+    ARGUMENTS
+    ---------
+    
+        well_name : str
+            Well's database name.
+            
+        well_name_column : str
+            Well name column in PSQL tables.
+            
+        md_column : str
+            Measured Depth column in PSQL log tables.
+        
+        log_name : str
+            Log name as reported by wellman.
+            
+        log_table : str
+            PSQL log table target.
+            
+        wells_table : str
+            PSQL wells table.
+            
+        markers_table : str
+            PSQL seismic markers table.
+            
+        top_marker_name : str
+            Marker's name at the top of the interval.
+            
+        top_marker_depth : float
+            Depth of the marker at the top of the interval.
+            
+        base_marker_name : str
+            Marker's name at the base of the interval.
+            
+        base_marker_depth : float
+            Depth of the marker at the base of the interval.
+        df : Pandas.DataFrame
+    
+    RETURN
+    ------
+        str
+            Fetch Query.  
+    """
+    
+    # Subquery: logs
+    logs_subquery = f"""
+    SELECT 
+        {well_name_column}, 
+        {md_column} AS md, 
+        {log_name}
+    FROM 
+        {log_table}
+    INNER JOIN {wells_table} USING(well_id)
+    INNER JOIN {markers_table} USING({well_name_column})
+    WHERE 
+        ({md_column}, {top_marker_name}, {base_marker_name}) IS NOT NULL AND
+        well_name = '{well_name}'
+    """
+    # Subquery: unnest logs
+    unnest_subquery = f"""
+    SELECT
+        well_name, 
+        UNNEST(md) AS md, 
+        UNNEST({log_name}) AS {log_name}
+    FROM(
+        {logs_subquery}
+    ) AS array_logs
+    """
+    # query: filter unnested logs
+    filtered_unnested_query = f"""
+    SELECT *
+    FROM (
+        {unnest_subquery}
+    ) AS unnested_logs
+    WHERE
+        md BETWEEN {top_marker_depth} AND {base_marker_depth}
+    """
+    return filtered_unnested_query
