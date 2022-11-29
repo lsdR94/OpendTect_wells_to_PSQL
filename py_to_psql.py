@@ -104,7 +104,7 @@ def wells_table_creation(table_name, connection, column_list=[]):
 
 def fetch_psql_command(command, connection):
     """
-    Make queries and return server's output.
+    Fetches data from remote server.
     
     ARGUMENTS
     ---------
@@ -145,7 +145,7 @@ def fetch_psql_command(command, connection):
 
 def fetch_column_names(table_name, connection, limit=0):
     """
-    Fetches only column names of the given table.
+    Fetches only column names of a table.
     
     ARGUMENTS
     ---------
@@ -214,7 +214,7 @@ def csv_to_df(file_path, sep=",", feet=True, columns=None, encoding="latin-1"):
 
 def string_replacement(string, replace_dict=REPLACE_DICT):
     """
-    Replaces characters for others.
+    Replaces characters in strings.
     
     Allows to ease string formatting for queries.
     
@@ -238,13 +238,11 @@ def string_replacement(string, replace_dict=REPLACE_DICT):
         string = string.replace(key, value)
     return string
 
-def df_to_psql_bc(df, table_name, well_name, connection, on_conflict_do="NOTHING"):
+def df_cols_to_psql(df, table_name, well_name, connection, on_conflict_do="NOTHING"):
     """
-    Inserts data from dataframes to PSQL tables BY COLUMNS.
+    Creates a query to insert DataFrame's columns as PSQL arrays into a given 
+    table.
     
-    Aimed at storing litoestratigraphy of all wells vectorially in a single 
-    table. Stores a single log into PSQL arrays.
-        
     ARGUMENTS
     ---------
         df : Pandas.DataFrame
@@ -267,6 +265,11 @@ def df_to_psql_bc(df, table_name, well_name, connection, on_conflict_do="NOTHING
     ------
         str
             Insertion Query.
+            
+    NOTES
+    -----
+        Tested with lithostratigraphic dataframe constructed by csv_to_df 
+        method.
     """
     #Recover table columns (same as df)
     table_df_columns = fetch_column_names(table_name, connection)
@@ -283,11 +286,10 @@ def df_to_psql_bc(df, table_name, well_name, connection, on_conflict_do="NOTHING
     insert_query = insert_statement + values_statement + conflict_statement
     return (insert_query)
 
-def df_to_psql_br(df, table_name, connection, on_conflict_do="NOTHING"):
+def df_rows_to_psql(df, table_name, connection, on_conflict_do="NOTHING"):
     """
-    Inserts data from dataframes to PSQL tables BY ROWS.
-    
-    Aimed at storing single data into a table.
+    Creates a query to insert DataFrame's values as PSQL single data types into a 
+    given table.
         
     ARGUMENTS
     ---------
@@ -308,6 +310,10 @@ def df_to_psql_br(df, table_name, connection, on_conflict_do="NOTHING"):
     ------
         str
             Insertion Query.
+            
+    NOTES
+    -----
+        Has not been tested.
     """
     #Recover table columns (same as df)
     table_df_columns = fetch_column_names(table_name, connection)
@@ -338,15 +344,15 @@ def slice_unnested_logs(
     base_marker_depth   
 ):
     """
-    Creates a query to fetch subvolumes of data from log tables with nested samples 
-    (arrays). Done well by well.
+    Creates a query to fetch subvolumes of data from log tables with nested 
+    samples (arrays). Done well by well.
     
     Uses the following queries:
-        - Query 1 (subquery): fetches well log arrays where neither the md and the 
-            seismic markers are nulls. 
+        - Query 1 (subquery): fetches well log arrays where neither the md
+            and the seismic markers are nulls. 
         - Query 2 (subquery): unnests fetched arrays.
-        - Query 3 (query): filters unnested information by seismic markers of choice.
-            (top & base).
+        - Query 3 (query): filters unnested information by seismic markers 
+            of choice (top & base).
     
     ARGUMENTS
     ---------
@@ -425,7 +431,7 @@ def slice_unnested_logs(
     """
     return filtered_unnested_query
 
-def df_sliced_logs(
+def unnested_logs_to_df(
     marker_df,
     well_name_column,
     md_column,
@@ -436,8 +442,8 @@ def df_sliced_logs(
     connection
 ):
     """
-    Constructs a Pandas DataFrame to store fetched subvolumes of unnested data from log 
-    tables. Done well by well.
+    Constructs a Pandas DataFrame to store fetched subvolumes of unnested 
+    data from log tables. Done well by well.
     
     ARGUMENTS
     ---------
