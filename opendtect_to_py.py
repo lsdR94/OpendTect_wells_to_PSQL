@@ -39,8 +39,8 @@ def insert_wells(
     
     ARGUMENTS
     ---------        
-        name_column_name : str
-            Well name column in PSQL wells table. Default: well_name.
+        well_name_column : str
+            Well name column in PSQL tables. Default: well_name.
             
         table_name : str
             PSQL table target.
@@ -140,7 +140,7 @@ def insert_log_as_arrays(
     on_conflict_do="NOTHING"
 ):
     """
-    Insert a single log (of given well) into a table as an array.
+    Creates a query to insert a single log into a table as a PSQL array.
     
     If there is no log, null values will be inserted in
     the table.
@@ -222,9 +222,18 @@ def insert_logs(
 
 ):
     """
-    Feeds insert_log method with wells.
+    Inserts logs into PSQL tables using loops compounded by well names.
+      
+    For more details, see insert_log_as_arrays and insert_log_by_samples docstring.
     
-    For more details, see insert_log docstring.
+    RETURN
+    ------
+        str
+            Finalization of the insertion process.
+    
+    NOTES
+    -----
+        insert_log_by_samples does not exist (yet)
     """
     init = time.time()
     print(f"Proccessing insertion query. Concept: well log '{log_name}' insertion in {mode} mode")
@@ -251,9 +260,9 @@ def check_null_wells(
     """
     Identifies null and empty wells.
     
-    By default, when insert_log doesn't find a specific log related to a
+    By default, when insert_logs doesn't find a specific log related to a
     specific well, it insert a null value to the target table. Null 
-    wells are those that contains logs but not the called one. On the 
+    wells are those that contains logs but not the chosen one. On the 
     contrary, empty wells are those with no log content.
     
     ARGUMENTS
@@ -280,9 +289,8 @@ def check_null_wells(
     
     RETURNS
     -------
-        str
-            Prints the finalization of the inserting process. Includes
-            execution time.
+        tuple
+            Lists of null and empty wells.
             
     FOOT NOTES
     ----------
@@ -313,7 +321,7 @@ def check_null_wells(
 
 def markers_to_psql(well_name, table_name, on_conflict_do="NOTHING"):
     """
-    Insert a markers (of a given well) into a table.
+    Insert markers into a table. Done well.
     
     If there is no marker, the return will be an invalid query.
     
