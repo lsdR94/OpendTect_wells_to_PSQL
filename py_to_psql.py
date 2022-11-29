@@ -425,3 +425,84 @@ def slice_unnested_logs(
         md BETWEEN {top_marker_depth} AND {base_marker_depth}
     """
     return filtered_unnested_query
+
+def df_sliced_logs(
+    marker_df,
+    well_name_column,
+    md_column,
+    log_name,
+    log_table, 
+    wells_table,
+    markers_table,
+):
+    """
+    Constructs a Pandas DataFrame to store fetched subvolumes of unnested data from log 
+    tables. Done well by well.
+    
+    ARGUMENTS
+    ---------
+        marker_df : Pandas.DataFrame
+            DataFrame with marker's data. 
+            
+        well_name : str
+            Well's database name.
+            
+        well_name_column : str
+            Well name column in PSQL tables.
+            
+        md_column : str
+            Measured Depth column in PSQL log tables.
+        
+        log_name : str
+            Log name as reported by wellman.
+            
+        log_table : str
+            PSQL log table target.
+            
+        wells_table : str
+            PSQL wells table.
+            
+        markers_table : str
+            PSQL seismic markers table.
+            
+        top_marker_name : str
+            Marker's name at the top of the interval.
+            
+        top_marker_depth : float
+            Depth of the marker at the top of the interval.
+            
+        base_marker_name : str
+            Marker's name at the base of the interval.
+            
+        base_marker_depth : float
+            Depth of the marker at the base of the interval.
+        df : Pandas.DataFrame
+    
+    RETURN
+    ------
+        str
+            Fetch Query.      
+    """
+    # Create empty df
+    df = pd.DataFrame(columns=[well_name_column, md_column, log_name])
+    for row in marker_df.values:  
+        filtered_unnested_query = slice_unnested_logs(
+            row[0],
+            marker_df.columns[0],
+            md_column,
+            log_name,
+            log_table,
+            wells_table,
+            markers_table,
+            marker_df.columns[1],
+            row[1],
+            marker_df.columns[2],
+            row[2]
+        )
+        # store query slice result
+        query_result = pp.fetch_psql_command(filtered_unnested_query, conn)
+        # construct a temporal df to store log of N well
+        temp_df = pd.DataFrame(data=query_result[1], columns=df.columns)
+        # Append temporal df to df
+        df = df.append(temp_df, ignore_index=True)
+    return df
