@@ -350,7 +350,6 @@ def slice_unnested_logs(
     
     ARGUMENTS
     ---------
-    
         well_name : str
             Well's database name.
             
@@ -434,6 +433,7 @@ def df_sliced_logs(
     log_table, 
     wells_table,
     markers_table,
+    connection
 ):
     """
     Constructs a Pandas DataFrame to store fetched subvolumes of unnested data from log 
@@ -443,9 +443,6 @@ def df_sliced_logs(
     ---------
         marker_df : Pandas.DataFrame
             DataFrame with marker's data. 
-            
-        well_name : str
-            Well's database name.
             
         well_name_column : str
             Well name column in PSQL tables.
@@ -465,23 +462,14 @@ def df_sliced_logs(
         markers_table : str
             PSQL seismic markers table.
             
-        top_marker_name : str
-            Marker's name at the top of the interval.
+        connection : psycopg2.extensions.connection
+            Parameters to create a connection between end user and PSQL 
+            server.
             
-        top_marker_depth : float
-            Depth of the marker at the top of the interval.
-            
-        base_marker_name : str
-            Marker's name at the base of the interval.
-            
-        base_marker_depth : float
-            Depth of the marker at the base of the interval.
-        df : Pandas.DataFrame
-    
     RETURN
     ------
-        str
-            Fetch Query.      
+        DataFrame
+            Collection of sampled logs by well.
     """
     # Create empty df
     df = pd.DataFrame(columns=[well_name_column, md_column, log_name])
@@ -500,7 +488,7 @@ def df_sliced_logs(
             row[2]
         )
         # store query slice result
-        query_result = pp.fetch_psql_command(filtered_unnested_query, conn)
+        query_result = fetch_psql_command(filtered_unnested_query, connection)
         # construct a temporal df to store log of N well
         temp_df = pd.DataFrame(data=query_result[1], columns=df.columns)
         # Append temporal df to df
