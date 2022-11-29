@@ -76,9 +76,9 @@ def wells_table_creation(table_name, connection, column_list=[]):
     ------
         PSQL table. The default table is created using the 
         following columns:
-            - well_id SERIAL NOT NULL UNIQUE PRIMARY KEY
+            - well_id SERIAL NOT NULL UNIQUE
             - opendtect_id NUMERIC(10,1) NOT NULL
-            - well_name VARCHAR(30) NOT NULL UNIQUE
+            - well_name VARCHAR(30) NOT NULL UNIQUE PRIMARY KEY
             - x_coordinate NUMERIC(10,2) NOT NULL
             - y_coordinate NUMERIC(10,2) NOT NULL
             - status VARCHAR(30) NOT NULL
@@ -92,9 +92,9 @@ def wells_table_creation(table_name, connection, column_list=[]):
     else:
         table_creation_query = f"""
             CREATE TABLE {table_name}(
-                well_id SERIAL NOT NULL UNIQUE PRIMARY KEY,
+                well_id SERIAL NOT NULL UNIQUE,
                 opendtect_id NUMERIC(10,1) NOT NULL,
-                well_name VARCHAR(30) NOT NULL UNIQUE,
+                well_name VARCHAR(30) NOT NULL UNIQUE PRIMARY KEY,
                 x_coordinate NUMERIC(10,2) NOT NULL,
                 y_coordinate NUMERIC(10,2) NOT NULL,
                 status VARCHAR(30) NOT NULL
@@ -232,6 +232,8 @@ def string_replacement(string, replace_dict=REPLACE_DICT):
             Formatted string.
     
     """
+    if string != str:
+        string = str(string)
     for key,value in replace_dict.items():
         string = string.replace(key, value)
     return string
