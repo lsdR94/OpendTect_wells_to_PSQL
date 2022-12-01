@@ -240,12 +240,12 @@ def insert_logs(
     if mode == "array":
         for well_name in well_names:
             print(f"\nWell {well_name}")
-            insert_query = insert_log_as_arrays(well_name, log_name, table_name, wells_table, connection)
+            insert_query = insert_log_as_arrays(well_name, log_name, table_name, wells_table, connection, on_conflict_do)
             pp.execute_psql_command(insert_query, connection)
     if mode == "sample":
          for well_name in well_names:
             print(f"\nWell {well_name}")
-            insert_query = insert_log_by_samples(well_name, log_name, table_name, wells_table, connection)
+            insert_query = insert_log_by_samples(well_name, log_name, table_name, wells_table, connection, on_conflict_do)
             pp.execute_psql_command(insert_query, connection)
     end = time.time()
     return (f"\nLog '{log_name}' insertion completed in {end - init}s")
@@ -345,16 +345,23 @@ def markers_to_psql(well_name, table_name, on_conflict_do="NOTHING"):
     #Recover table columns (same as df)
     table_columns = pp.string_replacement(str(od_markers[0]))
     #PSQL statements
-    insert_statement = f"INSERT INTO {table_name}(well_name,{table_columns}) "
-    values_statement = f"VALUES('{well_name}', "
-    conflict_statement = f"ON CONFLICT (well_name) DO "
-    conflict_statement += f"{on_conflict_do};"
-    for depth in od_markers[1]:
-        if depth != od_markers[1][-1]:
-            values_statement += f"{depth},"
-        if depth == od_markers[1][-1]:
-            values_statement += f"{depth}) "
-    insert_query = insert_statement + values_statement + conflict_statement
+    if od_markers[0]:
+        insert_statement = f"INSERT INTO {table_name}(well_name,{table_columns}) "
+        values_statement = f"VALUES('{well_name}', "
+        conflict_statement = f"ON CONFLICT (well_name) DO "
+        conflict_statement += f"{on_conflict_do};"
+        for index, depth in enumerate(od_markers[1]):
+            if index != len(od_markers[1]) - 1:
+                values_statement += f"{depth},"
+            if index == len(od_markers[1]) - 1:
+                values_statement += f"{depth}) "
+        insert_query = insert_statement + values_statement + conflict_statement
+    else:
+        insert_statement = f"INSERT INTO {table_name}(well_name) "
+        values_statement = f"VALUES('{well_name}')"
+        conflict_statement = f"ON CONFLICT (well_name) DO "
+        conflict_statement += f"{on_conflict_do};"
+        insert_query = insert_statement + values_statement + conflict_statement
     return insert_query
 
 
