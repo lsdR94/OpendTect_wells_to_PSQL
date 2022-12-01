@@ -336,7 +336,6 @@ def slice_unnested_logs(
     md_column,
     log_name,
     log_table, 
-    wells_table,
     markers_table,
     top_marker_name,
     top_marker_depth,
@@ -371,9 +370,6 @@ def slice_unnested_logs(
         log_table : str
             PSQL log table target.
             
-        wells_table : str
-            PSQL wells table.
-            
         markers_table : str
             PSQL seismic markers table.
             
@@ -404,7 +400,6 @@ def slice_unnested_logs(
         {log_name}
     FROM 
         {log_table}
-    INNER JOIN {wells_table} USING(well_id)
     INNER JOIN {markers_table} USING({well_name_column})
     WHERE 
         ({md_column}, {top_marker_name}, {base_marker_name}) IS NOT NULL AND
@@ -437,7 +432,6 @@ def unnested_logs_to_df(
     md_column,
     log_name,
     log_table, 
-    wells_table,
     markers_table,
     connection
 ):
@@ -486,7 +480,6 @@ def unnested_logs_to_df(
             md_column,
             log_name,
             log_table,
-            wells_table,
             markers_table,
             marker_df.columns[1],
             row[1],
