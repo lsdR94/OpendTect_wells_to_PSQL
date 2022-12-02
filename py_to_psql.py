@@ -474,7 +474,7 @@ def unnested_logs_to_df(
     # Create empty df
     df = pd.DataFrame(columns=[well_name_column, md_column, log_name])
     for row in marker_df.values:  
-        filtered_unnested_query = slice_unnested_logs(
+        filtered_unnested_query = nested_logs_to_py(
             row[0],
             marker_df.columns[0],
             md_column,
