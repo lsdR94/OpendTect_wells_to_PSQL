@@ -483,13 +483,17 @@ def unnested_logs_to_df(
             markers_table,
             marker_df.columns[1],
             row[1],
-            marker_df.columns[2],
-            row[2]
+            marker_df.columns[-1],
+            row[3]
         )
         # store query slice result
         query_result = fetch_psql_command(filtered_unnested_query, connection)
         # construct a temporal df to store log of N well
         temp_df = pd.DataFrame(data=query_result[1], columns=df.columns)
+        # truncate the 4th decimal of float columns
+        temp_df[[md_column,log_name]] = np.floor(
+            temp_df[[md_column,log_name]].astype("float").round(5)*10000
+        )/10000
         # Append temporal df to df
         df = df.append(temp_df, ignore_index=True)
     return df
