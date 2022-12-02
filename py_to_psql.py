@@ -330,7 +330,7 @@ def df_rows_to_psql(df, table_name, connection, on_conflict_do="NOTHING"):
     insert_query = insert_statement + values_statement + conflict_statement
     return (insert_query)
 
-def nested_logsto_py(
+def nested_logs_to_py(
     well_name,
     well_name_column,
     md_column,
@@ -344,7 +344,7 @@ def nested_logsto_py(
 ):
     """
     Creates a query to fetch subvolumes of data from log tables with nested 
-    samples (arrays). Done well by well.
+    samples (arrays) and filter them using markers table. Done well by well.
     
     Uses the following queries:
         - Query 1 (subquery): fetches well log arrays where neither the md
@@ -497,3 +497,44 @@ def unnested_logs_to_df(
         # Append temporal df to df
         df = df.append(temp_df, ignore_index=True)
     return df
+
+
+
+def nested_litho_to_py(
+    well_name,
+    litho_columns,
+    litho_table,
+    top_marker_depth,
+    base_marker_depth   
+):
+    """
+    """
+    litho_subquery = f"""
+        SELECT 
+            {string_replacement(str(litho_columns))}
+        FROM 
+            {litho_table}
+        WHERE 
+            well_name = '{well_name}'
+    """
+    # Unnest statement
+    unnest_statement = f"{litho_columns[0]}, UNNEST({litho_columns[1]}) AS md"
+    for column in litho_columns[2:]:
+        unnest_statement += f", UNNEST({column}) AS {column}" 
+    unnest_subquery= f"""
+        SELECT 
+            {unnest_statement}
+        FROM (
+            {litho_subquery}
+        ) AS litho_subquery
+    """
+
+    filtered_unnested_query = f"""
+        SELECT *
+        FROM (
+            {unnest_subquery}
+        ) unnest_subquery
+        WHERE 
+        md BETWEEN {top_marker_depth} AND {base_marker_depth}
+    """
+    return filtered_unnested_query
