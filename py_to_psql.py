@@ -330,7 +330,7 @@ def df_rows_to_psql(df, table_name, connection, on_conflict_do="NOTHING"):
     insert_query = insert_statement + values_statement + conflict_statement
     return (insert_query)
 
-def slice_unnested_logs(
+def nested_logsto_py(
     well_name,
     well_name_column,
     md_column,
