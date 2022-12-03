@@ -433,7 +433,8 @@ def unnested_logs_to_df(
     log_name,
     log_table, 
     markers_table,
-    connection
+    connection,
+    round_value=5
 ):
     """
     Constructs a Pandas DataFrame to store fetched subvolumes of unnested 
@@ -492,8 +493,8 @@ def unnested_logs_to_df(
         temp_df = pd.DataFrame(data=query_result[1], columns=df.columns)
         # truncate the 4th decimal of float columns
         temp_df[[md_column,log_name]] = np.floor(
-            temp_df[[md_column,log_name]].astype("float").round(5)*10000
-        )/10000
+            temp_df[[md_column,log_name]].astype("float").round(round_value)*(10**(round_value-1))
+        )/(10**(round_value-1))
         # Append temporal df to df
         df = df.append(temp_df, ignore_index=True)
     return df
