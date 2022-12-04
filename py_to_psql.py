@@ -503,6 +503,8 @@ def unnested_logs_to_df(
         df = df.append(temp_df, ignore_index=True)
     return df
 
+# DEPRECATED FUNCTIONS
+
 def nested_logs_to_py(
     well_name,
     well_name_column,
