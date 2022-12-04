@@ -238,7 +238,7 @@ def string_replacement(string, replace_dict=REPLACE_DICT):
         string = string.replace(key, value)
     return string
 
-def df_cols_to_psql(df, table_name, well_name, connection, on_conflict_do="NOTHING"):
+def df_cols_to_query(df, table_name, well_name, connection, on_conflict_do="NOTHING"):
     """
     Creates a query to insert DataFrame's columns as PSQL arrays into a given 
     table.
@@ -286,7 +286,7 @@ def df_cols_to_psql(df, table_name, well_name, connection, on_conflict_do="NOTHI
     insert_query = insert_statement + values_statement + conflict_statement
     return (insert_query)
 
-def df_rows_to_psql(df, table_name, connection, on_conflict_do="NOTHING"):
+def df_rows_to_query(df, table_name, connection, on_conflict_do="NOTHING"):
     """
     Creates a query to insert DataFrame's values as PSQL single data types into a 
     given table.
