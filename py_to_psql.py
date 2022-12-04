@@ -509,6 +509,52 @@ def nested_litho_to_py(
     base_marker_depth   
 ):
     """
+    Creates a query to fetch subvolumes of data from lithostratigraphic tables with 
+    nested samples (arrays) and filter them using markers table. Done well by well.
+    
+    Uses the following queries:
+        - Query 1 (subquery): fetches well lithostratigraphic arrays.
+        - Query 2 (subquery): unnests fetched arrays.
+        - Query 3 (query): filters unnested information by seismic markers 
+            of choice (top & base).
+    
+    ARGUMENTS
+    ---------
+        well_name : str
+            Well's database name.
+            
+        litho_columns : list
+            List of lithostratigraphic table's columns to fetch.
+            
+        md_column : str
+            Measured Depth column in PSQL log tables.
+        
+        log_name : str
+            Log name as reported by wellman.
+            
+        log_table : str
+            PSQL log table target.
+            
+        markers_table : str
+            PSQL seismic markers table.
+            
+        top_marker_name : str
+            Marker's name at the top of the interval.
+            
+        top_marker_depth : float
+            Depth of the marker at the top of the interval.
+            
+        base_marker_name : str
+            Marker's name at the base of the interval.
+            
+        base_marker_depth : float
+            Depth of the marker at the base of the interval.
+        df : Pandas.DataFrame
+    
+    RETURN
+    ------
+        str
+            Fetch Query. 
     """
     litho_subquery = f"""
         SELECT 
