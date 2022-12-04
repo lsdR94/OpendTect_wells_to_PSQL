@@ -52,7 +52,7 @@ def fetch_opendtect_well_log(well_name, log_name):
         print(f"Log {log_name} not found for Well {well_name}.")
         return([])
     
-def qb_log_as_arrays(
+def insert_log_as_arrays_query(
     well_name, 
     log_name,
     table_name, 
@@ -145,7 +145,7 @@ def insert_logs(
     """
     Inserts logs into PSQL tables using loops compounded by well names.
       
-    For more details, see qb_log_as_arrays and insert_log_by_samples docstring.
+    For more details, see insert_log_as_arrays_query and insert_log_by_samples docstring.
     
     RETURN
     ------
@@ -161,7 +161,7 @@ def insert_logs(
     if mode == "array":
         for well_name in well_names:
             print(f"\nWell {well_name}")
-            insert_query = qb_log_as_arrays(well_name, log_name, table_name, wells_table, connection, on_conflict_do)
+            insert_query = insert_log_as_arrays_query(well_name, log_name, table_name, wells_table, connection, on_conflict_do)
             pp.execute_psql_command(insert_query, connection)
     if mode == "sample":
          for well_name in well_names:
