@@ -240,9 +240,9 @@ def check_null_wells(
             empty_wells += [well[0]]
     return(null_wells, empty_wells)
 
-def markers_to_psql(well_name, table_name, on_conflict_do="NOTHING"):
+def insert_markers_query(well_name, table_name, on_conflict_do="NOTHING"):
     """
-    Insert markers into a table. Done well.
+    Creates a query to insert  markers into a table. Done by well.
     
     If there is no marker, the return will be an invalid query.
     
