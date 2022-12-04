@@ -19,85 +19,6 @@ def fetch_opendtect_wells_info():
     def lambdaf(well_name): return (wm.getInfo(well_name)) 
     return map(lambdaf, well_names)
 
-def insert_wells(
-    name_column_name,
-    table_name,
-    connection, 
-    values_statement=None
-):
-    """
-    Insert OPENDTECT well data into given table.
-    
-    The defaults OPENDTECT keys used are as follows:
-        - ID
-        - Name
-        - X
-        - Y
-        - Status
-    These default keys are related to the ones used in the
-    wells_table_creation method
-    
-    ARGUMENTS
-    ---------        
-        well_name_column : str
-            Well name column in PSQL tables. Default: well_name.
-            
-        table_name : str
-            PSQL table target.
-            
-        connection : psycopg2.extensions.connection
-            Parameters to create a connection between end user and PSQL 
-            server.
-            
-        values_statement : list (optional)
-            List of PSQL statements for a more flexible value insertion.
-       
-    RETURN
-    ------
-           str
-               Finalization message + execution time.
-     
-     FOOT NOTES
-     ----------
-         This method is.. a bit of hardcoded. I'm very sorry.
-         values_statement argument is provided in order to allow
-         a more flexible insertion if you are using other columns.
-    NO MORE
-    """
-    init = time.time()
-    # column names & fetch wells
-    column_names = pp.fetch_column_names(table_name, connection)
-    opendtect_wells_info = fetch_opendtect_wells_info()
-    # PSQL statement: conflict & insert
-    conflict_statement = f"ON CONFLICT ({name_column_name}) DO NOTHING"
-    insert_statement = f"INSERT INTO {table_name}("
-    for col_name in column_names[1:]:
-        if col_name != column_names[-1]:
-            insert_statement += f"{col_name}, "
-        else:
-            insert_statement += f"{col_name}) "
-    # PSQL statement: values
-    for well_dict in opendtect_wells_info:
-        init2 = time.time()
-        if values_statement == None:
-            values_statement = f"""
-                VALUES(
-                    {well_dict['ID']}, 
-                    '{well_dict['Name']}', 
-                    {well_dict['X']}, 
-                    {well_dict['Y']}, 
-                    '{well_dict['Status']}'
-                )
-            """
-        insert_statement += values_statement + conflict_statement
-        pp.execute_psql_command(insert_statement, connection)
-        end2 = time.time()
-        print(
-            f"Well {well_dict['Name']} insertion completed in {end2 - init2}s"
-        )
-    end = time.time()
-    return f"Wells insertion completed in {end - init}s"
-
 def fetch_opendtect_well_log(well_name, log_name):
     """
     Fetches a well log.
@@ -366,7 +287,85 @@ def markers_to_psql(well_name, table_name, on_conflict_do="NOTHING"):
 
 
 
-
+# DEPRECATED FUNCTIONS
+def insert_wells(
+    name_column_name,
+    table_name,
+    connection, 
+    values_statement=None
+):
+    """
+    Insert OPENDTECT well data into given table.
+    
+    The defaults OPENDTECT keys used are as follows:
+        - ID
+        - Name
+        - X
+        - Y
+        - Status
+    These default keys are related to the ones used in the
+    wells_table_creation method
+    
+    ARGUMENTS
+    ---------        
+        well_name_column : str
+            Well name column in PSQL tables. Default: well_name.
+            
+        table_name : str
+            PSQL table target.
+            
+        connection : psycopg2.extensions.connection
+            Parameters to create a connection between end user and PSQL 
+            server.
+            
+        values_statement : list (optional)
+            List of PSQL statements for a more flexible value insertion.
+       
+    RETURN
+    ------
+           str
+               Finalization message + execution time.
+     
+     FOOT NOTES
+     ----------
+         This method is.. a bit of hardcoded. I'm very sorry.
+         values_statement argument is provided in order to allow
+         a more flexible insertion if you are using other columns.
+    NO MORE
+    """
+    init = time.time()
+    # column names & fetch wells
+    column_names = pp.fetch_column_names(table_name, connection)
+    opendtect_wells_info = fetch_opendtect_wells_info()
+    # PSQL statement: conflict & insert
+    conflict_statement = f"ON CONFLICT ({name_column_name}) DO NOTHING"
+    insert_statement = f"INSERT INTO {table_name}("
+    for col_name in column_names[1:]:
+        if col_name != column_names[-1]:
+            insert_statement += f"{col_name}, "
+        else:
+            insert_statement += f"{col_name}) "
+    # PSQL statement: values
+    for well_dict in opendtect_wells_info:
+        init2 = time.time()
+        if values_statement == None:
+            values_statement = f"""
+                VALUES(
+                    {well_dict['ID']}, 
+                    '{well_dict['Name']}', 
+                    {well_dict['X']}, 
+                    {well_dict['Y']}, 
+                    '{well_dict['Status']}'
+                )
+            """
+        insert_statement += values_statement + conflict_statement
+        pp.execute_psql_command(insert_statement, connection)
+        end2 = time.time()
+        print(
+            f"Well {well_dict['Name']} insertion completed in {end2 - init2}s"
+        )
+    end = time.time()
+    return f"Wells insertion completed in {end - init}s"
 
 
 
