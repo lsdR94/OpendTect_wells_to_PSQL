@@ -310,10 +310,6 @@ def df_rows_to_query(df, table_name, connection, on_conflict_do="NOTHING"):
     ------
         str
             Insertion Query.
-            
-    NOTES
-    -----
-        Has not been tested.
     """
     #Recover table columns (same as df)
     table_df_columns = fetch_column_names(table_name, connection)
