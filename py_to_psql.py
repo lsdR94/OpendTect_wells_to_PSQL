@@ -19,12 +19,12 @@ REPLACE_DICT = {
 
 def execute_psql_command(command, connection):
     """
-    Executes PSQL commands.
+    Executes PSQL queries.
     
     ARGUMENTS
     ---------
         command : str
-            PSQL commands.
+            PSQL queries.
         
         connection : psycopg2.extensions.connection
             Parameters to create a connection between end user and PSQL 
@@ -33,8 +33,8 @@ def execute_psql_command(command, connection):
     RETURN
     ------
         str
-            Prints whether the command could be executed successfully
-            or not. Also includes the command execution time on psql 
+            Prints whether the query could be executed successfully
+            or not. Also includes the query execution time on psql 
             server.
     """
     try:
@@ -109,7 +109,7 @@ def fetch_psql_command(command, connection):
     ARGUMENTS
     ---------
         command : str
-            PSQL commands.
+            PSQL queries.
         
         connection : psycopg2.extensions.connection
             Parameters to create a connection between end user and PSQL 
@@ -131,7 +131,6 @@ def fetch_psql_command(command, connection):
         column_names = [col_name[0] for col_name in cursor.description]
         connection.commit()
         end = time.time()
-        # print(f"Fetch command has been executed successfully. Execution time = {end - init}s")
         return (column_names, query_result)
     except Exception as e:
         # Terminate connection
