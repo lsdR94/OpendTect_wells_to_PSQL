@@ -325,7 +325,7 @@ def df_rows_to_query(df, table_name, connection, on_conflict_do="NOTHING"):
     insert_query = insert_statement + values_statement + conflict_statement
     return (insert_query)
 
-def qb_slice_unnest_data(
+def slice_unnest_data_query(
     well_name,
     target_columns,
     target_table, 
@@ -474,7 +474,7 @@ def unnested_logs_to_df(
     target_columns = [well_name_column, md_column, log_name]
     df = pd.DataFrame(columns=target_columns)
     for row in marker_df.values:  
-        filtered_unnested_query = qb_slice_unnest_data(
+        filtered_unnested_query = slice_unnest_data_query(
             row[0],
             target_columns,
             target_table, 
