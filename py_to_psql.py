@@ -330,6 +330,179 @@ def df_rows_to_psql(df, table_name, connection, on_conflict_do="NOTHING"):
     insert_query = insert_statement + values_statement + conflict_statement
     return (insert_query)
 
+def qb_slice_unnest_data(
+    well_name,
+    target_columns,
+    target_table, 
+    markers_table,
+    top_marker_name,
+    top_marker_depth,
+    base_marker_name,
+    base_marker_depth,
+    join_axis="well_name",
+    md_column_name="md"
+):
+    """
+    Creates a query to fetch subvolumes of data from tables with nested 
+    samples (arrays) and filter them using markers table. Done well by well.
+    
+    Uses the following queries:
+        - Query 1 (subquery): fetches data arrays where neither the md
+            and the seismic markers are nulls. 
+        - Query 2 (subquery): unnests fetched arrays.
+        - Query 3 (query): filters unnested information by seismic markers 
+            of choice (top & base).
+    
+    ARGUMENTS
+    ---------
+        well_name : str
+            Well's database name.
+            
+        target_columns : list
+            List of target table's columns to fetch.
+            
+        target_table : str
+            PSQL target table.
+            
+        markers_table : str
+            PSQL seismic markers table.
+            
+        top_marker_name : str
+            Marker's name at the top of the interval.
+            
+        top_marker_depth : float
+            Depth of the marker at the top of the interval.
+            
+        base_marker_name : str
+            Marker's name at the base of the interval.
+            
+        base_marker_depth : float
+            Depth of the marker at the base of the interval.
+        df : Pandas.DataFrame
+        
+        join_axis : str
+            Common column to use as join axis by USING statement.
+            "well_name" by default.
+        md_column_name : str
+            Measured depth column name to use as filter by WHERE
+            statement. "md" by default.
+            
+    RETURN
+    ------
+        str
+            Fetch Query.  
+    """
+    
+    # Subquery: logs
+    target_subquery = f"""
+    SELECT 
+        {string_replacement(str(target_columns))}
+    FROM 
+        {target_table}
+    INNER JOIN {markers_table} USING({join_axis})
+    WHERE 
+        ({md_column_name}, {top_marker_name}, {base_marker_name}) IS NOT NULL AND
+        well_name = '{well_name}'
+    """
+    # Unnest statement
+    unnest_statement = f"{target_columns[0]}, UNNEST({target_columns[1]}) AS md"
+    for column in target_columns[2:]:
+        unnest_statement += f", UNNEST({column}) AS {column}" 
+    # Subquery: unnest logs
+    unnest_subquery = f"""
+    SELECT
+        {unnest_statement}
+    FROM(
+        {target_subquery}
+    ) AS target_subquery
+    """
+    
+    # query: filter unnested logs
+    filtered_unnested_query = f"""
+    SELECT *
+    FROM (
+        {unnest_subquery}
+    ) AS unnest_subquery
+    WHERE
+        md BETWEEN {top_marker_depth} AND {base_marker_depth}
+    """
+    return filtered_unnested_query
+
+def unnested_logs_to_df(
+    marker_df,
+    well_name_column,
+    md_column,
+    log_name,
+    target_table, 
+    markers_table,
+    connection,
+    join_axis="well_name",
+    round_value=5
+):
+    """
+    Constructs a Pandas DataFrame to store fetched subvolumes of unnested 
+    data from log tables. Done well by well.
+    
+    ARGUMENTS
+    ---------
+        marker_df : Pandas.DataFrame
+            DataFrame with marker's data. 
+            
+        well_name_column : str
+            Well name column in PSQL tables.
+            
+        md_column : str
+            Measured Depth column in PSQL log tables.
+        
+        log_name : str
+            Log name as reported by wellman.
+            
+        log_table : str
+            PSQL log table target.
+            
+        wells_table : str
+            PSQL wells table.
+            
+        markers_table : str
+            PSQL seismic markers table.
+            
+        connection : psycopg2.extensions.connection
+            Parameters to create a connection between end user and PSQL 
+            server.
+            
+    RETURN
+    ------
+        DataFrame
+            Collection of sampled logs by well.
+    """
+    # Create empty df
+    target_columns = [well_name_column, md_column, log_name]
+    df = pd.DataFrame(columns=target_columns)
+    for row in marker_df.values:  
+        filtered_unnested_query = qb_slice_unnest_data(
+            row[0],
+            target_columns,
+            target_table, 
+            markers_table,
+            marker_df.columns[1],
+            row[1],
+            marker_df.columns[-1],
+            row[3],
+            join_axis=join_axis,
+            md_column_name=md_column
+        )
+        # store query slice result
+        query_result = fetch_psql_command(filtered_unnested_query, connection)
+        # construct a temporal df to store log of N well
+        temp_df = pd.DataFrame(data=query_result[1], columns=df.columns)
+        # truncate the 4th decimal of float columns
+        temp_df[[md_column,log_name]] = np.floor(
+            temp_df[[md_column,log_name]].astype("float").round(round_value)*(10**(round_value-1))
+        )/(10**(round_value-1))
+        # Append temporal df to df
+        df = df.append(temp_df, ignore_index=True)
+    return df
+
 def nested_logs_to_py(
     well_name,
     well_name_column,
@@ -426,81 +599,6 @@ def nested_logs_to_py(
     """
     return filtered_unnested_query
 
-def unnested_logs_to_df(
-    marker_df,
-    well_name_column,
-    md_column,
-    log_name,
-    log_table, 
-    markers_table,
-    connection,
-    round_value=5
-):
-    """
-    Constructs a Pandas DataFrame to store fetched subvolumes of unnested 
-    data from log tables. Done well by well.
-    
-    ARGUMENTS
-    ---------
-        marker_df : Pandas.DataFrame
-            DataFrame with marker's data. 
-            
-        well_name_column : str
-            Well name column in PSQL tables.
-            
-        md_column : str
-            Measured Depth column in PSQL log tables.
-        
-        log_name : str
-            Log name as reported by wellman.
-            
-        log_table : str
-            PSQL log table target.
-            
-        wells_table : str
-            PSQL wells table.
-            
-        markers_table : str
-            PSQL seismic markers table.
-            
-        connection : psycopg2.extensions.connection
-            Parameters to create a connection between end user and PSQL 
-            server.
-            
-    RETURN
-    ------
-        DataFrame
-            Collection of sampled logs by well.
-    """
-    # Create empty df
-    df = pd.DataFrame(columns=[well_name_column, md_column, log_name])
-    for row in marker_df.values:  
-        filtered_unnested_query = nested_logs_to_py(
-            row[0],
-            marker_df.columns[0],
-            md_column,
-            log_name,
-            log_table,
-            markers_table,
-            marker_df.columns[1],
-            row[1],
-            marker_df.columns[-1],
-            row[3]
-        )
-        # store query slice result
-        query_result = fetch_psql_command(filtered_unnested_query, connection)
-        # construct a temporal df to store log of N well
-        temp_df = pd.DataFrame(data=query_result[1], columns=df.columns)
-        # truncate the 4th decimal of float columns
-        temp_df[[md_column,log_name]] = np.floor(
-            temp_df[[md_column,log_name]].astype("float").round(round_value)*(10**(round_value-1))
-        )/(10**(round_value-1))
-        # Append temporal df to df
-        df = df.append(temp_df, ignore_index=True)
-    return df
-
-
-
 def nested_litho_to_py(
     well_name,
     litho_columns,
@@ -526,26 +624,14 @@ def nested_litho_to_py(
         litho_columns : list
             List of lithostratigraphic table's columns to fetch.
             
-        md_column : str
-            Measured Depth column in PSQL log tables.
-        
-        log_name : str
-            Log name as reported by wellman.
-            
-        log_table : str
-            PSQL log table target.
+        Litho_table : str
+            PSQL lithostratigraphic table target.
             
         markers_table : str
             PSQL seismic markers table.
-            
-        top_marker_name : str
-            Marker's name at the top of the interval.
-            
+                      
         top_marker_depth : float
             Depth of the marker at the top of the interval.
-            
-        base_marker_name : str
-            Marker's name at the base of the interval.
             
         base_marker_depth : float
             Depth of the marker at the base of the interval.
