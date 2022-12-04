@@ -119,7 +119,7 @@ def fetch_psql_command(command, connection):
     ------
         Tuple (column_names, query_result)
             Psycopg2 doesn't returns columns with its fetchall 
-            method; therefore, the tuple contains column_names plus 
+            function; therefore, the tuple contains column_names plus 
             query results.
     """
     try:
@@ -162,7 +162,7 @@ def fetch_column_names(table_name, connection, limit=0):
     RETURN
     ------
         fetch_psql_command
-            fetch_psql_command method that returns only the table's 
+            fetch_psql_command function that returns only the table's 
             column names.
     """
     column_names_query = f"SELECT * FROM {table_name} LIMIT {limit}"

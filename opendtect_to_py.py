@@ -304,7 +304,7 @@ def insert_wells(
         - Y
         - Status
     These default keys are related to the ones used in the
-    wells_table_creation method
+    wells_table_creation function
     
     ARGUMENTS
     ---------        
@@ -328,7 +328,7 @@ def insert_wells(
      
      FOOT NOTES
      ----------
-         This method is.. a bit of hardcoded. I'm very sorry.
+         This function is.. a bit of hardcoded. I'm very sorry.
          values_statement argument is provided in order to allow
          a more flexible insertion if you are using other columns.
     NO MORE
