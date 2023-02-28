@@ -157,7 +157,7 @@ def insert_logs(
         insert_log_by_samples does not exist (yet)
     """
     init = time.time()
-    print(f"Proccessing insertion query. Concept: well log '{log_name}' insertion in {mode} mode")
+    print(f"\nProccessing insertion query. Concept: well log '{log_name}' insertion in {mode} mode")
     if mode == "array":
         for well_name in well_names:
             print(f"\nWell {well_name}")
