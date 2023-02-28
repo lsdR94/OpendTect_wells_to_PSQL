@@ -171,12 +171,55 @@ def insert_logs(
     end = time.time()
     return (f"\nLog '{log_name}' insertion completed in {end - init}s")
 
+def update_log_as_arrays_query(
+    well_name, 
+    log_name,
+    table_name, 
+    connection,
+    column_names,
+    on_conflict_do="NOTHING"
+):
+    def array_check(array): return(
+        str(
+            [None if sample == 1e+30 else sample for sample in array]
+        ).replace("None", "Null")
+    )
+    # fetch log
+    try:
+        log = fetch_opendtect_well_log(well_name, log_name)
+    except:
+        print(f"Can not find well's {well_name} '{log_name}' log in Opendtect internal database")
+        
+    # PSQL statements
+    update_statement = f"UPDATE {table_name} "
+    set_statement = "SET "
+    column_counter = 0
+    if log:
+        for array in log:
+            set_statement += f"{column_names[column_counter]} = array{array_check(array)}, "
+            column_counter += 1
+        set_statement += f"{column_names[-1]} = '{log_name}' "           
+    else:
+        for col_name in column_names:
+            if (col_name != column_names[-1]):
+                set_statement += f"{column_names[column_counter]} = NULL, "
+                column_counter += 1
+            elif col_name == column_names[-1]:
+                set_statement += f"{column_names[column_counter]} = NULL "
+    where_statement = f"WHERE well_name = '{well_name}'"
+    # Execute insert statement
+    update_query = update_statement + set_statement + where_statement
+    # well insertion message
+    return (update_query)
+    
+
 def check_null_wells(
     log_name,
     log_table, 
     wells_table, 
     connection, 
-    name_column_name="well_name", 
+    verbose=False,
+    name_column_name="well_name" 
 ):
     """
     Identifies null and empty wells.
@@ -231,7 +274,7 @@ def check_null_wells(
         # list filling
         null_wells += [well[0]]
         well_check = wm.getLogNames(well[0])
-        if well_check:
+        if well_check and verbose:
             print(f"\nWell '{well[0]}' logs:")
             print("****************************************")
             for log_names in well_check:
